@@ -53,10 +53,25 @@ app.post('/signup', (req, res) => {
 });
 
 // ✈️ Flight log route
-app.get('/flights', (req, res) => {
-    FlightLog.find()
-        .then(flights => res.json(flights))
-        .catch(err => res.status(500).json(err));
+app.get('/flights', async (req, res) => {
+    try {
+        const flights = await FlightLog.find();
+
+        const formatted = flights.map(flight => {
+            const dateObj = new Date(flight.timestamp);
+            return {
+                tail_number: flight.tail_number,
+                direction: flight.direction,
+                status: flight.status,
+                date: dateObj.toLocaleDateString(),
+                time: dateObj.toLocaleTimeString()
+            };
+        });
+
+        res.json(formatted);
+    } catch (err) {
+        res.status(500).json(err);
+    }
 });
 
 app.listen(3001, () => {
