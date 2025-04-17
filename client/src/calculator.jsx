@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  ChevronLeft, ChevronRight, Filter, ArrowUpDown, Download,
-  RefreshCcw, Plus, Search, Calendar, ArrowLeft
+  ChevronLeft, ChevronRight, Filter, Download,
+  RefreshCcw, Search, ArrowLeft
 } from "lucide-react";
 
 function Button({ children, onClick, size = "md", variant = "default", className = "" }) {
@@ -57,6 +57,14 @@ function Table() {
   const monthlyTotal = flightLogs.reduce((sum, log) => sum + log.totalCost, 0);
   const monthlyHours = flightLogs.reduce((sum, log) => sum + log.flightHours, 0);
 
+  // Search state and filter
+  const [searchTerm, setSearchTerm] = useState("");
+  const filteredLogs = flightLogs.filter(
+    log =>
+      log.tailNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      log.school.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div className="flex h-screen w-full overflow-hidden bg-gray-50">
       {/* Sidebar */}
@@ -91,11 +99,26 @@ function Table() {
             <h2 className="text-2xl font-bold">Training Flight Cost Calculator</h2>
           </div>
           <div className="flex gap-2">
-            <Button size="icon" variant="outline"><Calendar /></Button>
-            <Button size="icon" variant="outline"><Filter /></Button>
-            <Button size="icon" variant="outline"><Download /></Button>
-            <Button size="icon" variant="outline"><RefreshCcw /></Button>
-            <Button size="icon"><Plus /></Button>
+            {/* <Button size="icon" variant="outline"><Calendar /></Button> */}
+            <div className="relative group">
+              <Button size="icon" variant="outline"><Filter /></Button>
+              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-xs rounded bg-gray-700 text-white opacity-0 group-hover:opacity-100 transition">
+                Filter
+              </span>
+            </div>
+            <div className="relative group">
+              <Button size="icon" variant="outline"><Download /></Button>
+              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-xs rounded bg-gray-700 text-white opacity-0 group-hover:opacity-100 transition">
+                Download
+              </span>
+            </div>
+            <div className="relative group">
+              <Button size="icon" variant="outline"><RefreshCcw /></Button>
+              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-xs rounded bg-gray-700 text-white opacity-0 group-hover:opacity-100 transition">
+                Refresh
+              </span>
+            </div>
+            {/* <Button size="icon"><Plus /></Button> */}
           </div>
         </div>
 
@@ -121,13 +144,20 @@ function Table() {
           </div>
         </Card>
 
-        {/* Search and Filter */}
-        <div className="flex flex-col md:flex-row gap-4 mb-6 w-full">
-          <div className="relative flex-grow">
-            <input type="text" placeholder="Search by tail number or school" className="border p-2 rounded w-full pl-10" />
+        {/* Search only (dropdowns commented out) */}
+        <div className="mb-6 w-full">
+          <div className="relative w-full">
+            <input
+              type="text"
+              placeholder="Search by tail number or school"
+              className="border p-2 rounded w-full pl-10"
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+            />
             <Search className="absolute left-3 top-3 text-gray-400" size={16} />
           </div>
-          <div className="flex gap-2">
+          {/*
+          <div className="flex gap-2 mt-2">
             <select className="border p-2 rounded">
               <option>All Schools</option>
               <option>Sky Aviation</option>
@@ -140,6 +170,7 @@ function Table() {
               <option>VT-DEF</option>
             </select>
           </div>
+          */}
         </div>
 
         {/* Table */}
@@ -148,31 +179,31 @@ function Table() {
             <div className="w-full overflow-x-auto">
               <table className="w-full table-fixed text-sm text-left">
                 <colgroup>
-                  <col className="w-[5%]" />
-                  <col className="w-[12%]" />
-                  <col className="w-[12%]" />
-                  <col className="w-[12%]" />
-                  <col className="w-[15%]" />
-                  <col className="w-[15%]" />
-                  <col className="w-[15%]" />
-                  <col className="w-[14%]" />
+                  {/* <col className="w-[5%]" /> Checkbox */}
+                  <col className="w-[22%]" /> {/* Date */}
+                  <col className="w-[22%]" /> {/* Tail Number */}
+                  <col className="w-[18%]" /> {/* Flight Hours */}
+                  {/* <col className="w-[14%]" /> Cost Per Hour */}
+                  <col className="w-[19%]" /> {/* Total Cost */}
+                  <col className="w-[19%]" /> {/* Flight School */}
+                  {/* <col className="w-[14%]" /> Actions */}
                 </colgroup>
                 <thead className="bg-gray-100 text-gray-700 uppercase">
                   <tr>
-                    <th className="p-3"><input type="checkbox" /></th>
+                    {/* <th className="p-3"><input type="checkbox" /></th> */}
                     <th className="p-3">Date</th>
                     <th className="p-3">Tail Number</th>
                     <th className="p-3">Flight Hours</th>
-                    <th className="p-3">Cost Per Hour (₹)</th>
+                    {/* <th className="p-3">Cost Per Hour (₹)</th> */}
                     <th className="p-3">Total Cost (₹)</th>
                     <th className="p-3">Flight School</th>
-                    <th className="p-3">Actions</th>
+                    {/* <th className="p-3">Actions</th> */}
                   </tr>
                 </thead>
                 <tbody>
-                  {flightLogs.map((log, i) => (
+                  {filteredLogs.map((log, i) => (
                     <tr key={i} className="border-t hover:bg-gray-50">
-                      <td className="p-3"><input type="checkbox" /></td>
+                      {/* <td className="p-3"><input type="checkbox" /></td> */}
                       <td className="p-3 whitespace-nowrap">{log.date}</td>
                       <td className="p-3">
                         <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700 whitespace-nowrap">
@@ -180,15 +211,15 @@ function Table() {
                         </span>
                       </td>
                       <td className="p-3 whitespace-nowrap">{log.flightHours.toFixed(1)} hrs</td>
-                      <td className="p-3 whitespace-nowrap">₹{log.costPerHour.toLocaleString()}</td>
+                      {/* <td className="p-3 whitespace-nowrap">₹{log.costPerHour.toLocaleString()}</td> */}
                       <td className="p-3 font-medium whitespace-nowrap">₹{log.totalCost.toLocaleString()}</td>
                       <td className="p-3 whitespace-nowrap">{log.school}</td>
-                      <td className="p-3">
+                      {/* <td className="p-3">
                         <div className="flex gap-2">
                           <button className="text-blue-500 hover:text-blue-700">Edit</button>
                           <button className="text-red-500 hover:text-red-700">Delete</button>
                         </div>
-                      </td>
+                      </td> */}
                     </tr>
                   ))}
                 </tbody>
@@ -199,7 +230,7 @@ function Table() {
 
         {/* Pagination */}
         <div className="flex justify-between items-center mt-4 w-full">
-          <p className="text-sm text-gray-500">Showing 5 of 5 entries</p>
+          <p className="text-sm text-gray-500">Showing {filteredLogs.length} of {flightLogs.length} entries</p>
           <div className="flex gap-2">
             <Button variant="outline" className="text-sm">Previous</Button>
             <Button variant="outline" className="text-sm bg-blue-50">1</Button>
