@@ -53,7 +53,8 @@ function FlightTrackingTable() {
       date: "April 14, 2025", 
       tailNumber: "N12345", 
       outboundTime: "08:30 AM", 
-      inboundTime: "10:15 AM", 
+      inboundTime: "10:15 AM",
+      duration: "1h 45m", 
       status: "Completed", 
       departureVideo: "https://flight-videos.example.com/N12345-dep-20250414",
       arrivalVideo: "https://flight-videos.example.com/N12345-arr-20250414"
@@ -62,7 +63,8 @@ function FlightTrackingTable() {
       date: "April 14, 2025", 
       tailNumber: "N54321", 
       outboundTime: "09:45 AM", 
-      inboundTime: "11:30 AM", 
+      inboundTime: "11:30 AM",
+      duration: "1h 45m", 
       status: "Completed", 
       departureVideo: "https://flight-videos.example.com/N54321-dep-20250414",
       arrivalVideo: "https://flight-videos.example.com/N54321-arr-20250414"
@@ -71,7 +73,8 @@ function FlightTrackingTable() {
       date: "April 14, 2025", 
       tailNumber: "N78901", 
       outboundTime: "01:15 PM", 
-      inboundTime: "03:00 PM", 
+      inboundTime: "03:00 PM",
+      duration: "1h 45m", 
       status: "In Progress", 
       departureVideo: "https://flight-videos.example.com/N78901-dep-20250414",
       arrivalVideo: "Pending"
@@ -80,7 +83,8 @@ function FlightTrackingTable() {
       date: "April 14, 2025", 
       tailNumber: "N24680", 
       outboundTime: "02:30 PM", 
-      inboundTime: "Scheduled 04:15 PM", 
+      inboundTime: "Scheduled 04:15 PM",
+      duration: "1h 45m", 
       status: "Scheduled", 
       departureVideo: "Not Available",
       arrivalVideo: "Not Available"
@@ -123,12 +127,28 @@ function FlightTrackingTable() {
               <h2 className="text-2xl font-bold">Flight Logs</h2>
             </div>
             <div className="flex gap-2">
-              <Button size="icon" variant="outline"><Filter /></Button>
-              <Button size="icon" variant="outline"><ArrowUpDown /></Button>
-              <Button size="icon" variant="outline"><Download /></Button>
-              <Button size="icon" variant="outline"><RefreshCcw /></Button>
-              <Button size="icon"><Plus /></Button>
-            </div>
+  {/* Filter */}
+  <div className="relative group">
+    <Button size="icon" variant="outline"><Filter /></Button>
+    <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-xs rounded bg-gray-700 text-white opacity-0 group-hover:opacity-100 transition">
+      Filter
+    </span>
+  </div>
+  {/* Download */}
+  <div className="relative group">
+    <Button size="icon" variant="outline"><Download /></Button>
+    <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-xs rounded bg-gray-700 text-white opacity-0 group-hover:opacity-100 transition">
+      Download
+    </span>
+  </div>
+  {/* Refresh */}
+  <div className="relative group">
+    <Button size="icon" variant="outline"><RefreshCcw /></Button>
+    <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-xs rounded bg-gray-700 text-white opacity-0 group-hover:opacity-100 transition">
+      Refresh
+    </span>
+  </div>
+</div>
           </div>
 
           {/* Search */}
@@ -144,28 +164,29 @@ function FlightTrackingTable() {
           </div>
         </div>
         {/* Table - Fill remaining space */}
-        <div className="flex-1 px-6 pb-6 overflow-auto w-full">
+        {/* <div className="flex-1 px-6 pb-6 overflow-auto w-full"> */}
           <Card className="w-full">
             <CardContent>
               <div className="w-full overflow-x-auto">
-                <table className="w-full table-fixed">
+                <table className="w-full table-fixed ">
                   <colgroup>
-                    <col className="w-[5%]" />
+                    <col className="w-[10%]" />
                     <col className="w-[15%]" />
                     <col className="w-[15%]" />
                     <col className="w-[12.5%]" />
                     <col className="w-[12.5%]" />
                     <col className="w-[10%]" />
-                    <col className="w-[15%]" />
-                    <col className="w-[15%]" />
+                    <col className="w-[12.5%]" />
+                    <col className="w-[12.5%]" />
                   </colgroup>
                   <thead className="bg-gray-100 text-gray-700 uppercase">
                     <tr>
-                      <th className="p-3 text-left"><input type="checkbox" /></th>
+                      {/* <th className="p-3 text-left"><input type="checkbox" /></th> */}
                       <th className="p-3 text-left">DATE</th>
                       <th className="p-3 text-left">TAIL NUMBER</th>
                       <th className="p-3 text-left">OUTBOUND TIME</th>
                       <th className="p-3 text-left">INBOUND TIME</th>
+                      <th className="p-3 text-left">DURATION</th>
                       <th className="p-3 text-left">STATUS</th>
                       <th className="p-3 text-left">DEPARTURE VIDEO</th>
                       <th className="p-3 text-left">ARRIVAL VIDEO</th>
@@ -174,7 +195,7 @@ function FlightTrackingTable() {
                   <tbody>
                     {flights.map((flight, i) => (
                       <tr key={i} className="border-t hover:bg-gray-50">
-                        <td className="p-3"><input type="checkbox" /></td>
+                        {/* <td className="p-3"><input type="checkbox" /></td> */}
                         <td className="p-3 whitespace-nowrap">{flight.date}</td>
                         <td className="p-3">
                           <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 whitespace-nowrap">
@@ -183,6 +204,7 @@ function FlightTrackingTable() {
                         </td>
                         <td className="p-3 whitespace-nowrap">{flight.outboundTime}</td>
                         <td className="p-3 whitespace-nowrap">{flight.inboundTime}</td>
+                        <td className="p-3 whitespace-nowrap">{flight.duration}</td>  
                         <td className="p-3">
                           <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${
                             flight.status === "Completed" ? "bg-green-100 text-green-800" : 
@@ -217,7 +239,7 @@ function FlightTrackingTable() {
               </div>
             </CardContent>
           </Card>
-        </div>
+        {/* </div> */}
       </div>
     </div>
   );
