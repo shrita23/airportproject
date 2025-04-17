@@ -48,7 +48,7 @@ export default function LoginPage() {
     })
     .then(result => {
       console.log(result);
-      if (result.data.message === "Success") {
+      if (result.data.message === "Login successful"){
         navigate("/landing");
       } else {
         alert("Invalid email or password");

@@ -1,11 +1,13 @@
+// models/user.js
 const mongoose = require('mongoose');
 
-const userSchema = new mongoose.Schema({
+module.exports = function createUserModel(connection) {
+  const userSchema = new mongoose.Schema({
     name: String,
-    email:String,
-    password:String,
-    confirmPassword:String
-})
+    email: String,
+    password: String,
+    confirmPassword: String
+  });
 
-const userModel = mongoose.model('user', userSchema);
-module.exports = userModel;
+  return connection.model('User', userSchema); // Name model explicitly
+};
