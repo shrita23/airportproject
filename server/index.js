@@ -56,6 +56,11 @@ app.post('/signup', (req, res) => {
 app.get('/flights', async (req, res) => {
     try {
         const flights = await FlightLog.find();
+        FlightLog.find()
+  .sort({ timestamp: -1 }) // Optional: sort newest first
+  .then(logs => res.json(logs))
+  .catch(err => res.status(500).json(err));
+
 
         const formatted = flights.map(flight => {
             const dateObj = new Date(flight.timestamp);
