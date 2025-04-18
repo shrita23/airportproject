@@ -54,9 +54,7 @@ function Alert({ message, type = "error", onClose }) {
       }`}
     >
       {message}
-      <button onClick={onClose} className="ml-4 text-sm">
-        ×
-      </button>
+      <button onClick={onClose} className="ml-4 text-sm">×</button>
     </div>
   );
 }
@@ -67,7 +65,7 @@ function FlightTrackingTable() {
   const [flights, setFlights] = useState([]);
   const [loading, setLoading] = useState(false);
   const [alert, setAlert] = useState(null);
-  const [filters, setFilters] = useState([]); // Array to store multiple filters
+  const [filters, setFilters] = useState([]);
   const [sort, setSort] = useState({ field: "date", ascending: true });
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("tailNumber");
@@ -94,7 +92,6 @@ function FlightTrackingTable() {
         setFlights(JSON.parse(cachedData));
       }
       const res = await axios.get("http://localhost:3001/flights-with-durations");
-      console.log("API Response:", res.data);
       const flightLogs = res.data;
 
       const flightMap = {};
@@ -153,7 +150,6 @@ function FlightTrackingTable() {
         };
       });
 
-      console.log("Formatted Flights:", formattedFlights);
       setFlights(formattedFlights);
       localStorage.setItem("flightData", JSON.stringify(formattedFlights));
       setAlert({ message: "Data refreshed successfully!", type: "success" });
@@ -178,9 +174,51 @@ function FlightTrackingTable() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Parse search input to detect tail number, date, or status
+  const parseSearchInput = (input) => {
+    const filters = [];
+    
+    // Tail number pattern (e.g., VT-SBR)
+    const tailNumberRegex = /[A-Z0-9]{4,6}|VT-[A-Z0-9]{3}/i;
+    const tailMatch = input.match(tailNumberRegex);
+    if (tailMatch) {
+      filters.push({ field: "tailNumber", value: tailMatch[0] });
+    }
+
+    // Date pattern (e.g., June 18, 2024)
+    const dateRegex = /(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},\s+\d{4}/i;
+    const dateMatch = input.match(dateRegex);
+    if (dateMatch) {
+      const parsedDate = new Date(dateMatch[0]);
+      if (!isNaN(parsedDate)) {
+        filters.push({ field: "date", value: parsedDate.toISOString().split("T")[0] });
+      }
+    }
+
+    // Status pattern (e.g., Completed, In Progress)
+    const statusRegex = /completed|in progress/i;
+    const statusMatch = input.match(statusRegex);
+    if (statusMatch) {
+      filters.push({ field: "status", value: statusMatch[0].toLowerCase() });
+    }
+
+    // If no specific matches, treat as general text search
+    if (filters.length === 0 && input.trim()) {
+      filters.push({ field: "text", value: input.trim() });
+    }
+
+    return filters;
+  };
+
   // Debounced filter handler
   const debouncedSetFilter = useCallback(
-    debounce((value) => setFilters((prev) => prev.map(f => f.field === "text" ? { ...f, value } : f)), 300),
+    debounce((value) => {
+      const parsedFilters = parseSearchInput(value);
+      setFilters((prev) => {
+        const nonTextFilters = prev.filter(f => f.field !== "tailNumber" && f.field !== "date" && f.field !== "status" && f.field !== "text");
+        return [...nonTextFilters, ...parsedFilters];
+      });
+    }, 300),
     []
   );
 
@@ -191,7 +229,6 @@ function FlightTrackingTable() {
 
   // Handle filter selection
   const handleFilterSelect = (field, value) => {
-    console.log("Selected:", { field, value });
     setFilters((prev) => {
       const existingFilter = prev.find(f => f.field === field && f.value === value);
       if (existingFilter) {
@@ -203,14 +240,26 @@ function FlightTrackingTable() {
     setIsFilterOpen(false);
   };
 
+  // Handle time filter selection
+  const handleTimeFilterSelect = (field, value) => {
+    setFilters((prev) => {
+      const existingTimeFilter = prev.find(f => f.field === field && f.value === value);
+      if (existingTimeFilter) {
+        return prev.filter(f => !(f.field === field && f.value === value));
+      } else {
+        return [...prev.filter(f => f.field !== field), { field, value }];
+      }
+    });
+    setIsFilterOpen(false);
+  };
+
   // Handle reset filter
   const handleResetFilter = () => {
-    console.log("Resetting filter");
     setFilters([]);
     setIsFilterOpen(false);
   };
 
-  // Extract unique tail numbers and months
+  // Extract unique tail numbers, months, and statuses
   const uniqueTailNumbers = useMemo(
     () => [...new Set(flights.map((flight) => flight.tailNumber))],
     [flights]
@@ -229,6 +278,17 @@ function FlightTrackingTable() {
     [flights]
   );
 
+  // Generate time slots for 4-hour windows
+  const timeSlots = useMemo(() => {
+    const slots = [];
+    for (let hour = 0; hour < 24; hour += 4) {
+      const start = `${hour.toString().padStart(2, "0")}:00`;
+      const end = `${((hour + 4) % 24).toString().padStart(2, "0")}:00`;
+      slots.push(`${start}-${end}`);
+    }
+    return slots;
+  }, []);
+
   // Handle sort
   const handleSort = (field) => {
     setSort((prev) => ({
@@ -240,7 +300,6 @@ function FlightTrackingTable() {
   // Memoized filtered and sorted flights
   const processedFlights = useMemo(() => {
     let result = [...flights];
-    console.log("Filter state:", filters);
     if (filters.length > 0) {
       filters.forEach(({ field, value }) => {
         if (field === "tailNumber") {
@@ -257,10 +316,56 @@ function FlightTrackingTable() {
           result = result.filter(
             (flight) => flight.status.toLowerCase() === value.toLowerCase()
           );
+        } else if (field === "date") {
+          result = result.filter(
+            (flight) => flight.date === value
+          );
         } else if (field === "text") {
           result = result.filter((flight) =>
-            String(flight[field] || "").toLowerCase().includes(value.toLowerCase())
+            Object.values(flight).some(
+              (val) => String(val || "").toLowerCase().includes(value.toLowerCase())
+            )
           );
+        } else if (field === "outboundTime") {
+          const [startTime] = value.split("-");
+          const [startHour, startMinute] = startTime.split(":").map(Number);
+          const startMs = (startHour * 60 + startMinute) * 60 * 1000;
+          const endMs = startMs + 4 * 60 * 60 * 1000;
+
+          result = result.filter((flight) => {
+            const parseTime = (time) => {
+              if (time === "—") return null;
+              const [timeStr, period] = time.split(" ");
+              const [hours, minutes] = timeStr.split(":").map(Number);
+              let totalHours = hours;
+              if (period && period.toUpperCase() === "PM" && hours !== 12) totalHours += 12;
+              if (period && period.toUpperCase() === "AM" && hours === 12) totalHours = 0;
+              return (totalHours * 60 + minutes) * 60 * 1000;
+            };
+
+            const outboundMs = parseTime(flight.outboundTime);
+            return outboundMs !== null && outboundMs >= startMs && outboundMs < endMs;
+          });
+        } else if (field === "inboundTime") {
+          const [startTime] = value.split("-");
+          const [startHour, startMinute] = startTime.split(":").map(Number);
+          const startMs = (startHour * 60 + startMinute) * 60 * 1000;
+          const endMs = startMs + 4 * 60 * 60 * 1000;
+
+          result = result.filter((flight) => {
+            const parseTime = (time) => {
+              if (time === "—") return null;
+              const [timeStr, period] = time.split(" ");
+              const [hours, minutes] = timeStr.split(":").map(Number);
+              let totalHours = hours;
+              if (period && period.toUpperCase() === "PM" && hours !== 12) totalHours += 12;
+              if (period && period.toUpperCase() === "AM" && hours === 12) totalHours = 0;
+              return (totalHours * 60 + minutes) * 60 * 1000;
+            };
+
+            const inboundMs = parseTime(flight.inboundTime);
+            return inboundMs !== null && inboundMs >= startMs && inboundMs < endMs;
+          });
         }
       });
     }
@@ -276,7 +381,6 @@ function FlightTrackingTable() {
       }
       return 0;
     });
-    console.log("Processed flights count:", result.length);
     return result;
   }, [flights, filters, sort]);
 
@@ -383,38 +487,58 @@ function FlightTrackingTable() {
                   <Filter />
                 </Button>
                 {isFilterOpen && (
-                  <div className="absolute right-0 top-10 w-96 bg-white border rounded-lg shadow-lg z-10 p-4">
+                  <div className="absolute right-0 top-10 w-72 bg-white border rounded-lg shadow-lg z-10 p-4">
                     {/* Tabs */}
-                    <div className="flex space-x-4 mb-4 border-b">
+                    <div className="flex space-x-2 mb-4 border-b overflow-x-auto">
                       <button
                         onClick={() => setActiveTab("tailNumber")}
-                        className={`pb-2 ${
+                        className={`pb-2 px-2 ${
                           activeTab === "tailNumber"
                             ? "border-b-2 border-blue-500 text-blue-500"
                             : "text-gray-500 hover:text-gray-700"
-                        }`}
+                        } whitespace-nowrap`}
                       >
                         Tail Number
                       </button>
                       <button
                         onClick={() => setActiveTab("month")}
-                        className={`pb-2 ${
+                        className={`pb-2 px-2 ${
                           activeTab === "month"
                             ? "border-b-2 border-blue-500 text-blue-500"
                             : "text-gray-500 hover:text-gray-700"
-                        }`}
+                        } whitespace-nowrap`}
                       >
                         Month
                       </button>
                       <button
                         onClick={() => setActiveTab("status")}
-                        className={`pb-2 ${
+                        className={`pb-2 px-2 ${
                           activeTab === "status"
                             ? "border-b-2 border-blue-500 text-blue-500"
                             : "text-gray-500 hover:text-gray-700"
-                        }`}
+                        } whitespace-nowrap`}
                       >
                         Status
+                      </button>
+                      <button
+                        onClick={() => setActiveTab("outboundTime")}
+                        className={`pb-2 px-2 ${
+                          activeTab === "outboundTime"
+                            ? "border-b-2 border-blue-500 text-blue-500"
+                            : "text-gray-500 hover:text-gray-700"
+                        } whitespace-nowrap`}
+                      >
+                        Outbound Time
+                      </button>
+                      <button
+                        onClick={() => setActiveTab("inboundTime")}
+                        className={`pb-2 px-2 ${
+                          activeTab === "inboundTime"
+                            ? "border-b-2 border-blue-500 text-blue-500"
+                            : "text-gray-500 hover:text-gray-700"
+                        } whitespace-nowrap`}
+                      >
+                        Inbound Time
                       </button>
                     </div>
 
@@ -425,9 +549,9 @@ function FlightTrackingTable() {
                           <button
                             key={tailNumber}
                             onClick={() => handleFilterSelect("tailNumber", tailNumber)}
-                            className={`inline-block px-3 py-1 m-1 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors ${
+                            className={`inline-block px-2 py-1 m-1 bg-blue-100 text-gray-700 rounded-full text-sm hover:bg-blue-200 transition-colors ${
                               filters.some(f => f.field === "tailNumber" && f.value === tailNumber)
-                                ? "bg-blue-200 border border-blue-500"
+                                ? "bg-blue-500 text-white"
                                 : ""
                             }`}
                           >
@@ -439,9 +563,9 @@ function FlightTrackingTable() {
                           <button
                             key={month}
                             onClick={() => handleFilterSelect("month", month)}
-                            className={`inline-block px-3 py-1 m-1 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors ${
+                            className={`inline-block px-2 py-1 m-1 bg-blue-100 text-gray-700 rounded-full text-sm hover:bg-blue-200 transition-colors ${
                               filters.some(f => f.field === "month" && f.value === month)
-                                ? "bg-blue-200 border border-blue-500"
+                                ? "bg-blue-500 text-white"
                                 : ""
                             }`}
                           >
@@ -453,13 +577,27 @@ function FlightTrackingTable() {
                           <button
                             key={status}
                             onClick={() => handleFilterSelect("status", status)}
-                            className={`inline-block px-3 py-1 m-1 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors ${
+                            className={`inline-block px-2 py-1 m-1 bg-blue-100 text-gray-700 rounded-full text-sm hover:bg-blue-200 transition-colors ${
                               filters.some(f => f.field === "status" && f.value === status)
-                                ? "bg-blue-200 border border-blue-500"
+                                ? "bg-blue-500 text-white"
                                 : ""
                             }`}
                           >
                             {status}
+                          </button>
+                        ))}
+                      {(activeTab === "outboundTime" || activeTab === "inboundTime") &&
+                        timeSlots.map((slot) => (
+                          <button
+                            key={slot}
+                            onClick={() => handleTimeFilterSelect(activeTab, slot)}
+                            className={`inline-block px-2 py-1 m-1 bg-blue-100 text-gray-700 rounded-full text-sm hover:bg-blue-200 transition-colors whitespace-nowrap ${
+                              filters.some(f => f.field === activeTab && f.value === slot)
+                                ? "bg-blue-500 text-white"
+                                : ""
+                            }`}
+                          >
+                            {slot}
                           </button>
                         ))}
                     </div>
@@ -514,7 +652,7 @@ function FlightTrackingTable() {
             <div className="relative">
               <input
                 type="text"
-                placeholder="Search by tail number, date..."
+                placeholder="Search by tail number (e.g., VT-SBR), date (e.g., June 18, 2024), or status (e.g., Completed)"
                 className="w-full p-2 border rounded-lg pl-10 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 value={filters.find(f => f.field === "text")?.value || ""}
                 onChange={(e) => handleFilterChange(e)}

@@ -225,6 +225,101 @@ app.get('/flights-with-durations', async (req, res) => {
         res.status(500).json({ message: "Error fetching flight logs", error: err.message });
     }
 });
+app.get('/flight-costs', async (req, res) => {
+    console.log('Received request for /flight-costs'); // Add this line
+    try {
+        const logs = await FlightLog.find().sort({ timestamp: -1 });
+        console.log('Fetched logs count:', logs.length);
+        if (logs.length === 0) {
+            console.log('Warning: No logs found in FlightLog collection');
+        }
+
+        const flights = {};
+        logs.forEach(log => {
+            const dateObj = new Date(log.timestamp);
+            const dateStr = dateObj.toISOString().split('T')[0];
+            const key = `${log.tail_number}_${dateStr}`;
+
+            if (!flights[key]) {
+                flights[key] = [];
+            }
+            flights[key].push({
+                ...log.toObject(),
+                parsedDate: dateObj
+            });
+        });
+
+        const completeFlights = [];
+        Object.values(flights).forEach(tailFlights => {
+            tailFlights.sort((a, b) => a.parsedDate - b.parsedDate);
+
+            for (let i = 0; i < tailFlights.length; i++) {
+                const current = tailFlights[i];
+                let next = tailFlights[i + 1];
+
+                if (current.status === 'departing' && next && next.status === 'arriving') {
+                    const departureTime = current.parsedDate;
+                    const arrivalTime = next.parsedDate;
+                    const durationMs = arrivalTime - departureTime;
+                    const durationMinutes = Math.floor(durationMs / 60000);
+                    const flightHours = durationMinutes / 60;
+                    const totalCost = flightHours * 8500;
+
+                    completeFlights.push({
+                        tailNumber: current.tail_number,
+                        date: departureTime.toLocaleDateString('en-US', {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric"
+                        }),
+                        outboundTime: departureTime.toLocaleTimeString('en-US', {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            hour12: true
+                        }),
+                        inboundTime: arrivalTime.toLocaleTimeString('en-US', {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            hour12: true
+                        }),
+                        flightHours: flightHours.toFixed(1),
+                        totalCost: Math.round(totalCost),
+                        school: "Sky Aviation",
+                        status: "Completed"
+                    });
+                    i++;
+                } else if (current.status === 'departing') {
+                    const flightTime = current.parsedDate;
+                    completeFlights.push({
+                        tailNumber: current.tail_number,
+                        date: flightTime.toLocaleDateString('en-US', {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric"
+                        }),
+                        outboundTime: flightTime.toLocaleTimeString('en-US', {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            hour12: true
+                        }),
+                        inboundTime: "—",
+                        flightHours: 0,
+                        totalCost: 0,
+                        school: "Sky Aviation",
+                        status: "In Progress"
+                    });
+                }
+            }
+        });
+
+        completeFlights.sort((a, b) => new Date(b.date) - new Date(a.date));
+        console.log('Processed flights count:', completeFlights.length);
+        res.json(completeFlights.length > 0 ? completeFlights : { message: "No complete flight data available" });
+    } catch (err) {
+        console.error("Flight costs error:", err);
+        res.status(500).json({ message: "Error fetching flight costs", error: err.message });
+    }
+});
         
 // 🚀 SERVER
 app.listen(3001, () => {
