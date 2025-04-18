@@ -5,7 +5,7 @@ const flightLogSchema = new mongoose.Schema({
     direction: { type: String, required: true },
     status: { type: String, required: true },
     timestamp: { type: Date, required: true }
-}, { collection: 'flight_logs' }); // Make sure this matches your actual collection name
+}, { collection: 'flight_log' }); // Ensure this matches your actual collection name
 
 // Optimized indexes for better query performance
 flightLogSchema.index({ timestamp: -1 });  // For recent-first queries

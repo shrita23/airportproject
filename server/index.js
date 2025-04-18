@@ -93,97 +93,33 @@ app.post("/login", async (req, res) => {
     }
 });
 
-// ✈️ GET FLIGHT LOGS - SIMPLIFIED VERSION WITH DATE FIX
-app.get('/flights', async (req, res) => {
-    try {
-        // Explicitly specify the collection for debugging
-        console.log('Attempting to query flight logs from collection:', FlightLog.collection.name);
-        
-        const logs = await FlightLog.find().sort({ timestamp: -1 });
-        console.log(`Found ${logs.length} flight logs`);
-        
-        // Print a sample for debugging
-        if (logs.length > 0) {
-            console.log('Sample flight log:', logs[0]);
-        }
-
-        const formatted = logs.map(flight => {
-            // Explicitly handle ISO string conversion for better date parsing
-            let dateObj;
-            try {
-                // Handle different timestamp formats
-                const timestamp = flight.timestamp;
-                if (typeof timestamp === 'string') {
-                    dateObj = new Date(timestamp);
-                } else if (timestamp instanceof Date) {
-                    dateObj = timestamp;
-                } else {
-                    console.error('Unknown timestamp format:', timestamp);
-                    dateObj = new Date(); // Fallback to current date
-                }
-                
-                // Check if date is valid
-                if (isNaN(dateObj.getTime())) {
-                    console.error('Invalid date created from timestamp:', timestamp);
-                    dateObj = new Date(); // Fallback to current date
-                }
-            } catch (err) {
-                console.error('Error parsing date:', err);
-                dateObj = new Date(); // Fallback to current date
-            }
-
-            // Format date and time with explicit options
-            const date = dateObj.toLocaleDateString('en-US', {
-                year: "numeric",
-                month: "long",
-                day: "numeric"
-            });
-            
-            const time = dateObj.toLocaleTimeString('en-US', {
-                hour: "2-digit",
-                minute: "2-digit",
-                hour12: true
-            });
-            
-            return {
-                date,
-                tailNumber: flight.tail_number,
-                outboundTime: flight.status === "departing" ? time : "—",
-                inboundTime: flight.status === "arriving" ? time : "—",
-                duration: "—",
-                status: flight.status,
-                departureVideo: "Not Available",
-                arrivalVideo: "Not Available",
-                direction: flight.direction
-            };
-        });
-
-        res.json(formatted);
-    } catch (err) {
-        console.error("Flight log error:", err);
-        res.status(500).json({ message: "Error fetching flight logs", error: err.message });
-    }
-});
-
+// ✈️ GET FLIGHT LOGS WITH DURATIONS - IMPROVED VERSION
 // ✈️ GET FLIGHT LOGS WITH DURATIONS - IMPROVED VERSION
 app.get('/flights-with-durations', async (req, res) => {
     try {
         const logs = await FlightLog.find().sort({ timestamp: 1 });
+        console.log('Fetched logs count:', logs.length); // Debug log
         
-        // Group by tail number and date
         const flights = {};
         const completeFlights = [];
         
         logs.forEach(log => {
             try {
-                const dateObj = new Date(log.timestamp);
-                // Ensure dateObj is valid
-                if (isNaN(dateObj.getTime())) {
-                    console.error('Invalid date from timestamp:', log.timestamp);
-                    return; // Skip this record
+                console.log('Processing log:', log); // Log the full document
+                let dateObj;
+                // Handle timestamp safely
+                if (!log.timestamp || log.timestamp === 'undefined') {
+                    console.warn('Missing or undefined timestamp for log:', log);
+                    dateObj = new Date(); // Fallback to current date
+                } else {
+                    dateObj = new Date(log.timestamp);
+                    if (isNaN(dateObj.getTime())) {
+                        console.warn('Invalid timestamp format, falling back. Raw value:', log.timestamp, 'Log:', log);
+                        dateObj = new Date(); // Fallback to current date
+                    }
                 }
                 
-                const dateStr = dateObj.toISOString().split('T')[0]; // YYYY-MM-DD
+                const dateStr = dateObj.toISOString().split('T')[0];
                 const key = `${log.tail_number}_${dateStr}`;
                 
                 if (!flights[key]) {
@@ -192,24 +128,21 @@ app.get('/flights-with-durations', async (req, res) => {
                 
                 flights[key].push({
                     ...log.toObject(),
-                    parsedDate: dateObj // Add the parsed date for reliable sorting
+                    parsedDate: dateObj
                 });
             } catch (err) {
                 console.error('Error processing flight log:', err);
             }
         });
         
-        // Process each tail number's daily flights
         Object.values(flights).forEach(tailFlights => {
-            // Sort by timestamp to ensure proper sequence
             tailFlights.sort((a, b) => a.parsedDate - b.parsedDate);
             
-            // Find departure/arrival pairs
-            for (let i = 0; i < tailFlights.length - 1; i++) {
+            for (let i = 0; i < tailFlights.length; i++) {
                 const current = tailFlights[i];
-                const next = tailFlights[i + 1];
+                let next = tailFlights[i + 1];
                 
-                if (current.status === 'departing' && next.status === 'arriving') {
+                if (current.status === 'departing' && next && next.status === 'arriving') {
                     const departureTime = current.parsedDate;
                     const arrivalTime = next.parsedDate;
                     const durationMs = arrivalTime - departureTime;
@@ -236,16 +169,11 @@ app.get('/flights-with-durations', async (req, res) => {
                         }),
                         duration: `${hours}h ${minutes}m`,
                         status: "Completed",
-                        departureVideo: "Not Available",
-                        arrivalVideo: "Not Available",
-                        departureTimestamp: departureTime,
-                        arrivalTimestamp: arrivalTime
+                        departureVideo: "https://dummyvideo1.com",
+                        arrivalVideo: "https://dummyvideo2.com"
                     });
-                    
-                    // Skip the next flight since we've used it as an arrival
-                    i++;
-                } else {
-                    // Handle unpaired flights
+                    i++; // Skip the next entry as it's paired
+                } else if (current.status === 'departing') {
                     const flightTime = current.parsedDate;
                     completeFlights.push({
                         tailNumber: current.tail_number,
@@ -254,140 +182,50 @@ app.get('/flights-with-durations', async (req, res) => {
                             month: "long",
                             day: "numeric"
                         }),
-                        outboundTime: current.status === "departing" ? flightTime.toLocaleTimeString('en-US', {
+                        outboundTime: flightTime.toLocaleTimeString('en-US', {
                             hour: "2-digit",
                             minute: "2-digit",
                             hour12: true
-                        }) : "—",
-                        inboundTime: current.status === "arriving" ? flightTime.toLocaleTimeString('en-US', {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                            hour12: true
-                        }) : "—",
+                        }),
+                        inboundTime: "—",
                         duration: "—",
-                        status: current.status === "departing" ? "In Progress" : "Arrived",
+                        status: "In Progress",
+                        departureVideo: "https://dummyvideo1.com",
+                        arrivalVideo: "Not Available"
+                    });
+                } else if (current.status === 'arriving' && !tailFlights[i - 1]?.status === 'departing') {
+                    const flightTime = current.parsedDate;
+                    completeFlights.push({
+                        tailNumber: current.tail_number,
+                        date: flightTime.toLocaleDateString('en-US', {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric"
+                        }),
+                        outboundTime: "—",
+                        inboundTime: flightTime.toLocaleTimeString('en-US', {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            hour12: true
+                        }),
+                        duration: "—",
+                        status: "Arrived",
                         departureVideo: "Not Available",
-                        arrivalVideo: "Not Available",
-                        timestamp: flightTime
+                        arrivalVideo: "https://dummyvideo2.com"
                     });
                 }
             }
-            
-            // Handle the last flight if it wasn't paired
-            if (tailFlights.length % 2 !== 0) {
-                const lastFlight = tailFlights[tailFlights.length - 1];
-                const flightTime = lastFlight.parsedDate;
-                
-                completeFlights.push({
-                    tailNumber: lastFlight.tail_number,
-                    date: flightTime.toLocaleDateString('en-US', {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric"
-                    }),
-                    outboundTime: lastFlight.status === "departing" ? flightTime.toLocaleTimeString('en-US', {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        hour12: true
-                    }) : "—",
-                    inboundTime: lastFlight.status === "arriving" ? flightTime.toLocaleTimeString('en-US', {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        hour12: true
-                    }) : "—",
-                    duration: "—",
-                    status: lastFlight.status === "departing" ? "In Progress" : "Arrived",
-                    departureVideo: "Not Available",
-                    arrivalVideo: "Not Available",
-                    timestamp: flightTime
-                });
-            }
         });
         
-        // Sort all flights by date/time descending (most recent first)
-        completeFlights.sort((a, b) => {
-            const dateA = a.departureTimestamp || a.timestamp;
-            const dateB = b.departureTimestamp || b.timestamp;
-            return dateB - dateA;
-        });
-        
+        completeFlights.sort((a, b) => new Date(b.date + " " + b.outboundTime) - new Date(a.date + " " + a.outboundTime));
+        console.log('Processed flights count:', completeFlights.length); // Debug log
         res.json(completeFlights);
     } catch (err) {
         console.error("Flight log error:", err);
         res.status(500).json({ message: "Error fetching flight logs", error: err.message });
     }
 });
-
-// 📊 GET FLIGHT STATS BY DAY
-app.get('/flights', async (req, res) => {
-  try {
-      const logs = await FlightLog.find().sort({ timestamp: -1 });
-
-      const formatted = logs.map(flight => {
-          let dateObj;
-          // 1. Parse string timestamp with microseconds and timezone
-          if (typeof flight.timestamp === 'string') {
-              // Remove microseconds beyond 3 digits (keep milliseconds)
-              // Example: 2025-04-13T22:15:06.041784+05:30 -> 2025-04-13T22:15:06.041+05:30
-              const clean = flight.timestamp.replace(
-                  /\.(\d{3})\d*(\+|\-)/,
-                  '.$1$2'
-              );
-              dateObj = new Date(clean);
-          } else {
-              dateObj = new Date(flight.timestamp);
-          }
-
-          // 2. Fallback if invalid
-          if (isNaN(dateObj.getTime())) {
-              return {
-                  date: "Invalid Date",
-                  time: "Invalid Time",
-                  tailNumber: flight.tail_number,
-                  outboundTime: "—",
-                  inboundTime: "—",
-                  duration: "—",
-                  status: flight.status,
-                  departureVideo: "Not Available",
-                  arrivalVideo: "Not Available",
-                  direction: flight.direction
-              };
-          }
-
-          // 3. Format date and time for display (local time)
-          const date = dateObj.toLocaleDateString('en-IN', {
-              year: "numeric",
-              month: "long",
-              day: "numeric"
-          });
-          const time = dateObj.toLocaleTimeString('en-IN', {
-              hour: "2-digit",
-              minute: "2-digit",
-              hour12: false // or true for AM/PM
-          });
-
-          return {
-              date,
-              time,
-              tailNumber: flight.tail_number,
-              outboundTime: flight.status === "departing" ? time : "—",
-              inboundTime: flight.status === "arriving" ? time : "—",
-              duration: "—",
-              status: flight.status,
-              departureVideo: "Not Available",
-              arrivalVideo: "Not Available",
-              direction: flight.direction
-          };
-      });
-
-      res.json(formatted);
-  } catch (err) {
-      console.error("Flight log error:", err);
-      res.status(500).json({ message: "Error fetching flight logs", error: err.message });
-  }
-});
-
-
+        
 // 🚀 SERVER
 app.listen(3001, () => {
     console.log("✅ Server running on http://localhost:3001");
