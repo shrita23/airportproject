@@ -70,7 +70,7 @@ function FlightTrackingTable() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("tailNumber");
   const filterRef = useRef(null);
-
+  const [searchInput, setSearchInput] = useState("");
   const toggleSidebar = () => setCollapsed(!collapsed);
 
   const menuItems = [
@@ -218,13 +218,15 @@ function FlightTrackingTable() {
         const nonTextFilters = prev.filter(f => f.field !== "tailNumber" && f.field !== "date" && f.field !== "status" && f.field !== "text");
         return [...nonTextFilters, ...parsedFilters];
       });
-    }, 300),
+    }, 50),
     []
   );
 
   // Handle filter change
-  const handleFilterChange = (e) => {
-    debouncedSetFilter(e.target.value);
+  const handleSearchChange = (e) => {
+    const value = e.target.value;
+    setSearchInput(value);
+    debouncedSetFilter(value);
   };
 
   // Handle filter selection
@@ -256,6 +258,7 @@ function FlightTrackingTable() {
   // Handle reset filter
   const handleResetFilter = () => {
     setFilters([]);
+    setSearchInput(""); // Clear search input on reset
     setIsFilterOpen(false);
   };
 
@@ -654,8 +657,8 @@ function FlightTrackingTable() {
                 type="text"
                 placeholder="Search by tail number (e.g., VT-SBR), date (e.g., June 18, 2024), or status (e.g., Completed)"
                 className="w-full p-2 border rounded-lg pl-10 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                value={filters.find(f => f.field === "text")?.value || ""}
-                onChange={(e) => handleFilterChange(e)}
+                value={searchInput}
+                onChange={(e) => handleSearchChange(e)}
               />
               <Search className="absolute left-3 top-2.5 text-gray-400" size={16} />
             </div>
