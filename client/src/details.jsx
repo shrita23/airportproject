@@ -16,9 +16,10 @@ import debounce from "lodash/debounce";
 function Button({ children, onClick, size = "md", variant = "default", className = "" }) {
   const sizes = { icon: "p-2", md: "px-4 py-2" };
   const variants = {
-    default: "bg-blue-500 text-white hover:bg-blue-600",
-    ghost: "bg-transparent hover:bg-gray-100",
-    outline: "border border-gray-300 text-gray-700 hover:bg-gray-50",
+    default: "bg-sky-500 text-white hover:bg-sky-600",
+    ghost: "bg-transparent hover:bg-gray-100 dark:hover:bg-gray-700",
+    outline:
+      "border border-gray-300 text-gray-700 dark:text-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800",
     menu: "bg-transparent hover:border-2 hover:border-white transition-all duration-200",
     loading: "bg-gray-300 text-gray-500 cursor-not-allowed",
   };
@@ -35,7 +36,7 @@ function Button({ children, onClick, size = "md", variant = "default", className
 }
 
 function Card({ children, className = "" }) {
-  return <div className={`bg-white rounded-xl shadow ${className}`}>{children}</div>;
+  return <div className={`bg-white dark:bg-gray-800 rounded-xl shadow ${className}`}>{children}</div>;
 }
 
 function CardContent({ children }) {
@@ -49,8 +50,10 @@ function CardContent({ children }) {
 function Alert({ message, type = "error", onClose }) {
   return (
     <div
-      className={`fixed top-4 right-4 p-4 rounded-lg ${
-        type === "error" ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"
+      className={`fixed top-4 right-4 p-4 rounded-lg z-50 ${
+        type === "error"
+          ? "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200"
+          : "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200"
       }`}
     >
       {message}
@@ -466,7 +469,7 @@ function FlightTrackingTable() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col bg-gray-50 w-full">
+      <div className="flex-1 flex flex-col bg-gray-50 dark:bg-gray-900 w-full">
         <div className="px-6 py-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center space-x-2">
@@ -490,7 +493,7 @@ function FlightTrackingTable() {
                   <Filter />
                 </Button>
                 {isFilterOpen && (
-                  <div className="absolute right-0 top-10 w-72 bg-white border rounded-lg shadow-lg z-10 p-4">
+                  <div className="absolute right-0 top-10 w-72 bg-white dark:bg-gray-900 border rounded-lg shadow-lg z-10 p-4">
                     {/* Tabs */}
                     <div className="flex space-x-2 mb-4 border-b overflow-x-auto">
                       <button
@@ -679,7 +682,7 @@ function FlightTrackingTable() {
                   <col className="w-[12.5%]" />
                   <col className="w-[12.5%]" />
                 </colgroup>
-                <thead className="bg-gray-100 text-gray-700 uppercase sticky top-0">
+                <thead className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-100 uppercase sticky top-0">
                   <tr>
                     <th
                       className="p-3 text-left cursor-pointer hover:bg-gray-200"

@@ -16,12 +16,14 @@ import debounce from "lodash/debounce";
 function Button({ children, onClick, size = "md", variant = "default", className = "" }) {
   const sizes = { icon: "p-2", md: "px-4 py-2" };
   const variants = {
-    default: "bg-blue-500 text-white hover:bg-blue-600",
-    ghost: "bg-transparent hover:bg-gray-100",
-    outline: "border border-gray-300 text-gray-700 hover:bg-gray-50",
+    default: "bg-sky-500 text-white hover:bg-sky-600",
+    ghost: "bg-transparent hover:bg-gray-100 dark:hover:bg-gray-700",
+    outline:
+      "border border-gray-300 text-gray-700 dark:text-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800",
     menu: "bg-transparent hover:border-2 hover:border-white transition-all duration-200",
     loading: "bg-gray-300 text-gray-500 cursor-not-allowed",
   };
+
   return (
     <button
       onClick={onClick}
@@ -34,18 +36,24 @@ function Button({ children, onClick, size = "md", variant = "default", className
 }
 
 function Card({ children, className = "" }) {
-  return <div className={`bg-white rounded-xl shadow w-full ${className}`}>{children}</div>;
+  return <div className={`bg-white dark:bg-gray-800 rounded-xl shadow ${className}`}>{children}</div>;
 }
 
 function CardContent({ children }) {
-  return <div className="w-full max-h-[calc(100vh-250px)] overflow-y-auto">{children}</div>;
+  return (
+    <div className="w-full max-h-[calc(100vh-250px)] overflow-y-auto overflow-x-hidden">
+      {children}
+    </div>
+  );
 }
 
 function Alert({ message, type = "error", onClose }) {
   return (
     <div
-      className={`fixed top-4 right-4 p-4 rounded-lg ${
-        type === "error" ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"
+      className={`fixed top-4 right-4 p-4 rounded-lg z-50 ${
+        type === "error"
+          ? "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200"
+          : "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200"
       }`}
     >
       {message}
@@ -286,7 +294,7 @@ function Table() {
   const monthlyHours = filteredLogs.reduce((sum, log) => sum + (parseFloat(log.flightHours) || 0), 0);
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-gray-50">
+    <div className="flex h-screen w-full overflow-hidden bg-gray-50 dark:bg-gray-900">
       {/* Sidebar */}
       <div className={`bg-gray-800 text-white p-4 transition-all ${collapsed ? "w-16" : "w-64"}`}>
         <div className="flex items-center justify-between mb-10">
@@ -329,7 +337,7 @@ function Table() {
                 <Filter />
               </Button>
               {isFilterOpen && (
-                <div className="absolute right-0 top-10 w-72 bg-white border rounded-lg shadow-lg z-10 p-4">
+                <div className="absolute right-0 top-10 w-72 bg-white dark:bg-gray-900 border rounded-lg shadow-lg z-10 p-4">
                   {/* Tabs */}
                   <div className="flex space-x-2 mb-4 border-b overflow-x-auto">
                     <button
@@ -463,16 +471,16 @@ function Table() {
             <span className="text-sm bg-blue-100 text-blue-800 px-3 py-1 rounded-full">Monthly Report</span>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <p className="text-sm text-blue-700">Total Flight Hours</p>
+            <div className="bg-blue-50 dark:bg-blue-500 p-4 rounded-lg">
+              <p className="text-sm text-blue-700 dark:text-black">Total Flight Hours</p>
               <p className="text-2xl font-bold">{monthlyHours.toFixed(1)} hrs</p>
             </div>
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <p className="text-sm text-blue-700">Total Cost</p>
+            <div className="bg-blue-50 dark:bg-blue-500 p-4 rounded-lg">
+              <p className="text-sm text-blue-700 dark:text-black">Total Cost</p>
               <p className="text-2xl font-bold">₹{monthlyTotal.toLocaleString()}</p>
             </div>
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <p className="text-sm text-blue-700">Average Cost per Hour</p>
+            <div className="bg-blue-50 dark:bg-blue-500 p-4 rounded-lg">
+              <p className="text-sm text-blue-700 dark:text-black">Average Cost per Hour</p>
               <p className="text-2xl font-bold">₹{(monthlyHours ? (monthlyTotal / monthlyHours).toFixed(2) : 0)}</p>
             </div>
           </div>
@@ -505,7 +513,7 @@ function Table() {
                   <col className="w-[15%]" /> {/* Status */}
                   <col className="w-[15%]" /> {/* Flight School */}
                 </colgroup>
-                <thead className="bg-gray-100 text-gray-700 uppercase">
+                <thead className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-100 uppercase">
                   <tr>
                     <th className="p-3">Date</th>
                     <th className="p-3">Tail Number</th>

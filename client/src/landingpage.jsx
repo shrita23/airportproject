@@ -11,7 +11,7 @@ const LandingPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white font-glory overflow-x-hidden">
+    <div className="min-h-screen bg-white dark:bg-gray-900 font-glory overflow-x-hidden">
       {/* Header with navigation */}
       <header className="flex justify-between items-center px-12 py-6">
         <div className="flex items-center">
@@ -20,16 +20,16 @@ const LandingPage = () => {
             alt="Kalaburagi Airport Logo" 
             className="h-20 mr-3"
           />
-          <span className="text-xl font-bold text-black">
+          <span className="text-xl font-bold text-black dark:text-white">
             Kalaburagi Airport
           </span>
         </div>
         <nav>
           <ul className="flex space-x-12">
-            <li><Link to="/landing" className="cursor-pointer font-bold hover:text-gray-600 transition text-black duration-300">Home</Link></li>
-            <li><Link to="/details" className="cursor-pointer font-bold hover:text-gray-600 text-black  transition duration-300">Flight Logs</Link></li>
-            <li><Link to="/calculator" className="cursor-pointer font-bold hover:text-gray-600 text-black  transition duration-300">Cost Details</Link></li>
-            <li><Link to="/" className="cursor-pointer font-bold hover:text-gray-600 text-black  transition duration-300">LogOut</Link></li>
+            <li><Link to="/landing" className="cursor-pointer font-bold hover:text-gray-600 transition text-black dark:text-white duration-300">Home</Link></li>
+            <li><Link to="/details" className="cursor-pointer font-bold hover:text-gray-600 text-black dark:text-white transition duration-300">Flight Logs</Link></li>
+            <li><Link to="/calculator" className="cursor-pointer font-bold hover:text-gray-600 text-black dark:text-white transition duration-300">Cost Details</Link></li>
+            <li><Link to="/" className="cursor-pointer font-bold hover:text-gray-600 text-black dark:text-white transition duration-300">LogOut</Link></li>
           </ul>
         </nav>
       </header>
@@ -38,11 +38,11 @@ const LandingPage = () => {
       <div className="grid grid-cols-12 w-full py-16 grid place-items-center ">
         {/* Left Column - Text Content */}
         <div className="col-span-12 md:col-span-5 px-12 md:pl-12 md:pr-6">
-          <h1 className="text-6xl font-bold leading-tight mb-6 text-[#1a2e44]">
+          <h1 className="text-6xl font-bold leading-tight mb-6 text-[#1a2e44] dark:text-sky-400">
             For Regional<br />
             Progress and Growth
           </h1>
-          <p className="text-sm mb-8 text-gray-700">
+          <p className="text-sm mb-8 text-gray-700 dark:text-gray-300">
             with our expanding services and infrastructure, we're driving economic development across North Karnataka.
           </p>
           <button 
